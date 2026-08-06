@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090b11">
+  <title>NFC Workbench</title>
+  <style>
+    :root{
+      --bg:#090b11;--panel:#11141d;--panel2:#171b27;--line:#292f3e;
+      --text:#f4f6fb;--muted:#9198aa;--blue:#638cff;--cyan:#39d8e7;
+      --green:#4ee49b;--amber:#ffbd55;--red:#ff5f72;--violet:#a773ff;
+      --shadow:0 20px 55px rgba(0,0,0,.38)
+    }
+    *{box-sizing:border-box}
+    html{color-scheme:dark}
+    body{margin:0;min-height:100vh;background:
+      radial-gradient(circle at 20% -10%,rgba(99,140,255,.18),transparent 34%),
+      radial-gradient(circle at 95% 15%,rgba(57,216,231,.10),transparent 30%),var(--bg);
+      color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    button,input,textarea{font:inherit}
+    button,a{ -webkit-tap-highlight-color:transparent }
+    .wrap{width:min(1180px,100%);margin:auto;padding:24px 20px 44px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:22px}
+    .brand{display:flex;align-items:center;gap:13px;min-width:0}
+    .logo{width:48px;height:48px;display:grid;place-items:center;border-radius:15px;
+      background:linear-gradient(145deg,#6b8cff,#34d4e4);box-shadow:0 9px 28px rgba(70,139,255,.32);
+      color:white;font-size:.84rem;font-weight:900;letter-spacing:.06em}
+    h1{font-size:1.25rem;line-height:1.1;margin:0;letter-spacing:-.025em}
+    .subtitle{color:var(--muted);font-size:.76rem;margin-top:5px}
+    .header-actions{display:flex;align-items:center;gap:9px}
+    .nav-link,.status{height:38px;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);
+      border-radius:999px;background:rgba(17,20,29,.86);color:#dce1ed;text-decoration:none;padding:0 13px;font-size:.74rem;font-weight:750}
+    .nav-link:hover{border-color:#4a536a;background:#171b27}
+    .status .dot{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 4px rgba(255,189,85,.11)}
+    .status.connected .dot{background:var(--green);box-shadow:0 0 0 4px rgba(78,228,155,.11)}
+    .status.disconnected .dot{background:var(--red);box-shadow:0 0 0 4px rgba(255,95,114,.11)}
+    .status.checking .dot{animation:pulse 1.2s ease infinite}
+    @keyframes pulse{50%{opacity:.35}}
+    .grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(360px,.95fr);gap:18px;align-items:start}
+    .card{border:1px solid var(--line);border-radius:23px;background:linear-gradient(155deg,rgba(20,24,35,.97),rgba(13,16,24,.98));box-shadow:var(--shadow);overflow:hidden}
+    .pad{padding:22px}
+    .card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px}
+    h2{margin:0;font-size:.91rem;letter-spacing:.01em}
+    .eyebrow{color:var(--muted);font-size:.69rem;text-transform:uppercase;letter-spacing:.13em;font-weight:800;margin-bottom:7px}
+    .reader-pill{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:.7rem;font-weight:750}
+    .reader-pill i{width:7px;height:7px;border-radius:50%;background:#596071}
+    .reader-pill.ready{color:#bdeed8}.reader-pill.ready i{background:var(--green)}
+    .reader-pill.offline{color:#ffadb8}.reader-pill.offline i{background:var(--red)}
+    .scan-zone{position:relative;isolation:isolate;min-height:288px;border:1px solid #283044;border-radius:19px;overflow:hidden;
+      display:grid;place-items:center;text-align:center;padding:28px;background:
+      linear-gradient(145deg,rgba(34,42,62,.70),rgba(12,15,23,.82))}
+    .scan-zone:before,.scan-zone:after{content:"";position:absolute;inset:50% auto auto 50%;transform:translate(-50%,-50%);border-radius:50%;z-index:-1}
+    .scan-zone:before{width:260px;height:260px;border:1px solid rgba(99,140,255,.20);box-shadow:0 0 0 35px rgba(99,140,255,.035),0 0 0 72px rgba(99,140,255,.022)}
+    .scan-zone:after{width:155px;height:155px;background:radial-gradient(circle,rgba(99,140,255,.20),rgba(99,140,255,.035) 56%,transparent 72%)}
+    .scan-zone.busy:before{animation:rings 1.45s ease-out infinite}
+    .scan-zone.success:after{background:radial-gradient(circle,rgba(78,228,155,.24),rgba(78,228,155,.035) 58%,transparent 72%)}
+    .scan-zone.error:after{background:radial-gradient(circle,rgba(255,95,114,.22),rgba(255,95,114,.035) 58%,transparent 72%)}
+    @keyframes rings{0%{opacity:.8;transform:translate(-50%,-50%) scale(.72)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.28)}}
+    .nfc-icon{width:72px;height:72px;margin:0 auto 18px;display:grid;place-items:center;border-radius:22px;background:linear-gradient(145deg,#222a3c,#151a27);border:1px solid #39435b;box-shadow:0 18px 35px rgba(0,0,0,.28)}
+    .nfc-icon svg{width:39px;height:39px;fill:none;stroke:#86a4ff;stroke-width:2.1;stroke-linecap:round}
+    .scan-title{font-size:1.12rem;font-weight:850;letter-spacing:-.02em}
+    .scan-message{max-width:440px;margin:9px auto 0;color:var(--muted);font-size:.78rem;line-height:1.55;min-height:38px}
+    .actions{display:grid;grid-template-columns:1fr;gap:10px;margin-top:14px}
+    .btn{border:0;border-radius:13px;min-height:45px;padding:0 17px;font-size:.77rem;font-weight:850;cursor:pointer;transition:.18s ease;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+    .btn:hover:not(:disabled){transform:translateY(-1px)}.btn:active:not(:disabled){transform:translateY(0)}
+    .btn:disabled{opacity:.42;cursor:not-allowed}
+    .btn-primary{color:white;background:linear-gradient(135deg,#6e8fff,#4f70e6);box-shadow:0 9px 24px rgba(77,111,230,.25)}
+    .btn-secondary{color:#dce2ee;background:#1d2230;border:1px solid #333b4f}
+    .details{display:grid;grid-template-columns:1.08fr 1.42fr .8fr;gap:9px;margin-top:14px}
+    .detail{min-width:0;border:1px solid #272d3c;background:#0e1119;border-radius:13px;padding:12px}
+    .detail span{display:block;color:#777f92;font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;font-weight:800;margin-bottom:7px}
+    .detail strong{display:block;color:#e7eaf1;font-size:.72rem;line-height:1.35;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+    .result{margin-top:14px;border:1px solid #282e3e;border-radius:15px;background:#0d1017;padding:15px}
+    .result-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+    .result-label{font-size:.66rem;color:#858da0;text-transform:uppercase;letter-spacing:.1em;font-weight:850}
+    .record-pill{font-size:.65rem;padding:5px 8px;border-radius:999px;background:rgba(99,140,255,.10);color:#aebfff;border:1px solid rgba(99,140,255,.22)}
+    .payload{font-size:.78rem;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;color:#e4e7ee;min-height:42px}
+    details{margin-top:11px;color:var(--muted);font-size:.7rem}
+    details summary{cursor:pointer}.raw{margin-top:8px;padding:10px;border-radius:10px;background:#080a0f;color:#9ca7bd;font:600 .67rem/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere}
+    .tabs{display:flex;gap:7px;padding:5px;border:1px solid #292f40;background:#0c0f16;border-radius:13px;margin:17px 0}
+    .tab{flex:1;min-height:36px;border:0;border-radius:9px;color:#858da0;background:transparent;font-size:.72rem;font-weight:850;cursor:pointer}
+    .tab.active{color:#eef1f8;background:#202636;box-shadow:0 4px 13px rgba(0,0,0,.24)}
+    label{display:block;color:#b5bbca;font-size:.72rem;font-weight:800;margin-bottom:8px}
+    .input{width:100%;border:1px solid #303749;border-radius:13px;background:#0d1018;color:#f2f4f8;outline:none;padding:13px 14px;font-size:.78rem;transition:.18s ease}
+    .input:focus{border-color:#617fcf;box-shadow:0 0 0 3px rgba(99,140,255,.10)}
+    textarea.input{min-height:139px;resize:vertical;line-height:1.55}
+    .field-note{display:flex;justify-content:space-between;gap:12px;color:#777f92;font-size:.65rem;margin-top:7px}
+    .write-panel{display:none}.write-panel.active{display:block}
+    .write-btn{width:100%;margin-top:17px}
+    .notice{display:flex;gap:10px;margin-top:15px;padding:12px 13px;border:1px solid rgba(255,189,85,.22);border-radius:13px;background:rgba(255,189,85,.055);color:#c8b895;font-size:.68rem;line-height:1.5}
+    .notice b{color:#f2d69e}.notice .mark{font-weight:900;color:var(--amber)}
+    .activity{margin-top:18px;border-top:1px solid var(--line);padding-top:17px}
+    .activity-row{display:flex;align-items:center;gap:11px;color:#8e96a8;font-size:.71rem;line-height:1.45}
+    .activity-icon{width:30px;height:30px;flex:0 0 auto;display:grid;place-items:center;border-radius:10px;background:#1b2030;color:#8ba7ff;font-weight:900}
+    .emulation-card{grid-column:1/-1}
+    .emulation-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(310px,.85fr);gap:18px;margin-top:17px}
+    .emulation-tabs{display:flex;gap:7px;padding:5px;border:1px solid #292f40;background:#0c0f16;border-radius:13px;margin-bottom:15px}
+    .emulation-tab{flex:1;min-height:36px;border:0;border-radius:9px;color:#858da0;background:transparent;font-size:.72rem;font-weight:850;cursor:pointer}
+    .emulation-tab.active{color:#eef1f8;background:#202636;box-shadow:0 4px 13px rgba(0,0,0,.24)}
+    .emulation-panel{display:none}.emulation-panel.active{display:block}
+    .emulation-actions{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:14px}
+    .emulation-monitor{border:1px solid #2c3344;background:#0d1017;border-radius:17px;padding:17px;min-width:0}
+    .emulation-live{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}
+    .emulation-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid #343b4e;border-radius:999px;padding:7px 10px;color:#9199ab;font-size:.69rem;font-weight:800}
+    .emulation-pill i{width:8px;height:8px;border-radius:50%;background:#596071}
+    .emulation-pill.active{color:#bdeed8;border-color:rgba(78,228,155,.25);background:rgba(78,228,155,.06)}
+    .emulation-pill.active i{background:var(--green);box-shadow:0 0 0 4px rgba(78,228,155,.10);animation:pulse 1.25s ease infinite}
+    .emulation-pill.connected{color:#c8d4ff;border-color:rgba(99,140,255,.28);background:rgba(99,140,255,.08)}
+    .emulation-pill.connected i{background:var(--blue);box-shadow:0 0 0 4px rgba(99,140,255,.12)}
+    .emulation-stats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+    .emulation-stat{border:1px solid #272d3c;background:#11151e;border-radius:13px;padding:12px}
+    .emulation-stat span{display:block;color:#777f92;font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;font-weight:800;margin-bottom:7px}
+    .emulation-stat strong{display:block;color:#e7eaf1;font-size:.78rem;overflow-wrap:anywhere}
+    .emulation-preview{border:1px solid #272d3c;background:#080a0f;border-radius:13px;padding:13px;color:#cfd5e2;font-size:.73rem;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;min-height:72px}
+    .emulation-help{margin-top:12px;color:#858da0;font-size:.68rem;line-height:1.55}
+    .footer{text-align:center;color:#697185;font-size:.67rem;margin-top:18px;line-height:1.5}
+    .toast{position:fixed;z-index:10;left:50%;bottom:22px;transform:translate(-50%,18px);opacity:0;pointer-events:none;padding:10px 14px;border:1px solid #333a4c;border-radius:999px;background:#181c27;box-shadow:0 15px 38px #000;color:#e3e7ef;font-size:.72rem;transition:.2s ease}
+    .toast.show{opacity:1;transform:translate(-50%,0)}
+    @media(max-width:860px){.grid{grid-template-columns:1fr}.details{grid-template-columns:repeat(3,1fr)}.emulation-layout{grid-template-columns:1fr}}
+    @media(max-width:600px){.wrap{padding:15px 12px 34px}header{align-items:flex-start}.header-actions{flex-direction:column-reverse;align-items:flex-end}.nav-link,.status{height:34px;padding:0 11px;font-size:.68rem}.pad{padding:17px}.scan-zone{min-height:270px}.details{grid-template-columns:1fr}.actions,.emulation-actions{grid-template-columns:1fr}.emulation-stats{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">NFC</div>
+        <div><h1>NFC Workbench</h1><div class="subtitle">PN532 tag tools and tag emulation</div></div>
+      </div>
+      <div class="header-actions">
+        <a class="nav-link" href="/">← Dashboard</a>
+        <div id="connectionStatus" class="status checking" role="status" aria-live="polite"><span class="dot"></span><span id="connectionText">Checking...</span></div>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card pad">
+        <div class="card-head">
+          <div><div class="eyebrow">Reader</div><h2>Scan and inspect a tag</h2></div>
+          <div id="readerPill" class="reader-pill"><i></i><span>Reader unknown</span></div>
+        </div>
+
+        <div id="scanZone" class="scan-zone">
+          <div>
+            <div class="nfc-icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48"><path d="M13 12a17 17 0 0 1 0 24M20 17a10 10 0 0 1 0 14M35 12a17 17 0 0 0 0 24M28 17a10 10 0 0 0 0 14M24 23.5v1"/></svg>
+            </div>
+            <div id="scanTitle" class="scan-title">Ready to scan</div>
+            <div id="scanMessage" class="scan-message">Select an operation, then hold a compatible NFC tag over the reader on the PCB.</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="scanButton" class="btn btn-primary">⌁ Scan tag</button>
+        </div>
+
+        <div class="details">
+          <div class="detail"><span>UID</span><strong id="uidValue">—</strong></div>
+          <div class="detail"><span>Tag family</span><strong id="tagTypeValue">—</strong></div>
+          <div class="detail"><span>User capacity</span><strong id="capacityValue">—</strong></div>
+        </div>
+
+        <div class="result">
+          <div class="result-top"><span class="result-label">Read result</span><span id="recordPill" class="record-pill">No record</span></div>
+          <div id="payloadValue" class="payload">Scan a tag to display its NDEF text or URL.</div>
+          <details id="rawDetails"><summary>Raw NDEF bytes</summary><div id="rawValue" class="raw">—</div></details>
+        </div>
+      </section>
+
+      <section class="card pad">
+        <div><div class="eyebrow">Writer</div><h2>Create an NDEF record</h2></div>
+
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="url" role="tab">URL</button>
+          <button class="tab" data-tab="text" role="tab">Text</button>
+        </div>
+
+        <div id="urlPanel" class="write-panel active">
+          <label for="urlPayload">Website or deep link</label>
+          <textarea id="urlPayload" class="input" maxlength="700" spellcheck="false" placeholder="https://example.com/product/42">https://example.com/device/setup</textarea>
+          <div class="field-note"><span>URI prefixes are compressed automatically.</span><span id="urlCount">32 / 700</span></div>
+        </div>
+
+        <div id="textPanel" class="write-panel">
+          <label for="textPayload">UTF-8 text</label>
+          <textarea id="textPayload" class="input" maxlength="700" placeholder="Enter the text stored on the tag">ESP32-S3 NFC configuration tag</textarea>
+          <div class="field-note"><span>Written as an English-language NDEF Text record.</span><span id="textCount">32 / 700</span></div>
+        </div>
+
+        <button id="writeButton" class="btn btn-primary write-btn">Write URL to tag</button>
+
+        <div class="notice"><span class="mark">!</span><div><b>Writing support:</b> NDEF text and URL operations target writable NFC Forum Type 2 tags such as NTAG2xx and MIFARE Ultralight. Keep the tag in place until verification completes.</div></div>
+
+        <div class="activity">
+          <div class="eyebrow">Current operation</div>
+          <div class="activity-row"><div id="activityIcon" class="activity-icon">✓</div><div id="activityText">Reader state will appear here after the controller responds.</div></div>
+        </div>
+      </section>
+
+      <section class="card pad emulation-card">
+        <div class="card-head">
+          <div><div class="eyebrow">Tag Emulation</div><h2>Present a virtual NFC record from the badge; Wi-Fi onboarding starts automatically at boot</h2></div>
+          <div id="tagEmulationPill" class="emulation-pill"><i></i><span>Stopped</span></div>
+        </div>
+
+        <div class="emulation-layout">
+          <div>
+            <div class="emulation-tabs" role="tablist">
+              <button class="emulation-tab active" data-emulation-tab="url" role="tab">URL</button>
+              <button class="emulation-tab" data-emulation-tab="text" role="tab">Text</button>
+            </div>
+
+            <div id="emulationUrlPanel" class="emulation-panel active">
+              <label for="emulationUrlPayload">URL presented by the emulated tag</label>
+              <textarea id="emulationUrlPayload" class="input" maxlength="220" spellcheck="false" placeholder="https://example.com/sneakreaper">https://example.com/sneakreaper</textarea>
+              <div class="field-note"><span>Served as a read-only NFC Forum Type 4 URL record.</span><span id="emulationUrlCount">31 / 220</span></div>
+            </div>
+
+            <div id="emulationTextPanel" class="emulation-panel">
+              <label for="emulationTextPayload">Text presented by the emulated tag</label>
+              <textarea id="emulationTextPayload" class="input" maxlength="220" placeholder="Enter text for nearby phones">Sneakreaper Badge NFC record</textarea>
+              <div class="field-note"><span>Served as an English UTF-8 NDEF Text record.</span><span id="emulationTextCount">28 / 220</span></div>
+            </div>
+
+            <div class="emulation-actions">
+              <button id="emulationStartButton" class="btn btn-primary">Start Tag Emulation</button>
+              <button id="emulationStopButton" class="btn btn-secondary" disabled>Stop Tag Emulation</button>
+            </div>
+
+            <div class="notice"><span class="mark">!</span><div><b>One NFC mode at a time:</b> while tag emulation is active, the PN532 cannot scan or write external tags. Unlock the phone, make sure NFC is enabled, and hold its NFC antenna close to the badge antenna until the record appears. Phone and OS compatibility can vary.</div></div>
+          </div>
+
+          <div class="emulation-monitor">
+            <div class="emulation-live"><div><div class="eyebrow">Emulation status</div><strong id="tagEmulationState">Tag emulation stopped</strong></div></div>
+            <div class="emulation-stats">
+              <div class="emulation-stat"><span>Record type</span><strong id="tagEmulationType">—</strong></div>
+              <div class="emulation-stat"><span>Tag Scans</span><strong id="tagScanCount">0</strong></div>
+            </div>
+            <div id="tagEmulationPreview" class="emulation-preview">The badge starts with its Wi-Fi onboarding record. You can replace it with a Text or URL record here.</div>
+            <div id="tagEmulationMessage" class="emulation-help">The badge will behave like a read-only NFC tag until you stop tag emulation.</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="footer">Connect to the ESP32 access point and open <b>http://10.10.10.100/nfc</b>. NFC operations are processed locally on the PCB.</div>
+  </div>
+  <div id="toast" class="toast"></div>
+
+<script>
+(() => {
+  const $ = selector => document.querySelector(selector);
+  const $$ = selector => [...document.querySelectorAll(selector)];
+  const previewMode = new URLSearchParams(location.search).has('preview');
+  let activeTab = 'url';
+  let activeEmulationTab = 'url';
+  let requestActive = false;
+  let operationPoll = 0;
+  let toastTimer = 0;
+
+  const sampleState = {
+    readerReady:true,busy:false,writable:true,status:'success',
+    message:'Tag read successfully.',uid:'04:A2:71:9C:3B:81:80',
+    tagType:'NFC Forum Type 2 (NTAG / Ultralight)',recordType:'URL',
+    payload:'https://example.com/device/setup',
+    raw:'D1 01 19 55 04 65 78 61 6D 70 6C 65 2E 63 6F 6D 2F 64 65 76 69 63 65 2F 73 65 74 75 70',
+    capacity:144,tagEmulationEnabled:false,emulationReaderConnected:false,
+    emulatedRecordType:'',emulatedPayload:'',emulationMessage:'Tag emulation is stopped.',
+    tagScans:0,lastTagScanAt:0,updatedAt:12345
+  };
+
+  function toast(message){
+    $('#toast').textContent=message;$('#toast').classList.add('show');
+    clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),1900);
+  }
+
+  function setConnection(status){
+    const badge=$('#connectionStatus');
+    badge.classList.remove('connected','disconnected','checking');badge.classList.add(status);
+    $('#connectionText').textContent=status==='connected'?'Connected':status==='disconnected'?'Disconnected':'Checking...';
+  }
+
+  function setTemporaryDisabled(disabled){
+    ['scanButton','writeButton','emulationStartButton','emulationStopButton'].forEach(id=>$('#'+id).disabled=disabled);
+  }
+
+  function applyControls(state){
+    const ready=!!state.readerReady;
+    const emulating=!!state.tagEmulationEnabled;
+    const externalBusy=!!state.busy;
+    $('#scanButton').disabled=!ready||externalBusy;
+    $('#writeButton').disabled=!ready||externalBusy;
+    $('#emulationStartButton').disabled=!ready||externalBusy;
+    $('#emulationStopButton').disabled=!ready||!emulating;
+    $$('.emulation-tab').forEach(button=>button.disabled=!ready||emulating);
+    $('#emulationUrlPayload').disabled=!ready||emulating;
+    $('#emulationTextPayload').disabled=!ready||emulating;
+  }
+
+  function applyState(state){
+    const emulating=!!state.tagEmulationEnabled;
+    const connected=!!state.emulationReaderConnected;
+    const pill=$('#readerPill');
+    pill.classList.toggle('ready',!!state.readerReady);pill.classList.toggle('offline',!state.readerReady);
+    pill.querySelector('span').textContent=!state.readerReady?'PN532 offline':emulating?'PN532 emulating':'PN532 ready';
+
+    const zone=$('#scanZone');
+    zone.classList.remove('busy','success','error');
+    if(state.busy)zone.classList.add('busy');else if(state.status==='success')zone.classList.add('success');else if(state.status==='error'||state.status==='offline')zone.classList.add('error');
+
+    const titleMap={waiting:'Present a tag',working:'Reading tag...',emulating:'Tag emulation active',success:'Operation complete',error:'Operation failed',offline:'Reader unavailable',idle:'Ready to scan'};
+    $('#scanTitle').textContent=emulating?(connected?'NFC reader connected':'Tag emulation active'):(state.busy?(state.status==='working'?'Processing tag':'Waiting for tag'):(titleMap[state.status]||'NFC reader'));
+    $('#scanMessage').textContent=state.message||'Choose an NFC operation.';
+    $('#activityText').textContent=state.message||'No operation is active.';
+    $('#activityIcon').textContent=state.busy?'…':state.status==='error'||state.status==='offline'?'!':'✓';
+
+    $('#uidValue').textContent=state.uid||'—';
+    $('#tagTypeValue').textContent=state.tagType||'—';
+    $('#capacityValue').textContent=state.capacity?`${state.capacity} bytes`:'—';
+    $('#recordPill').textContent=state.recordType||'No record';
+    $('#payloadValue').textContent=state.payload||'Scan a tag to display its NDEF text or URL.';
+    $('#rawValue').textContent=state.raw||'—';
+    $('#rawDetails').style.display=state.raw?'block':'none';
+
+    const emulationPill=$('#tagEmulationPill');
+    emulationPill.classList.toggle('active',emulating&&!connected);
+    emulationPill.classList.toggle('connected',emulating&&connected);
+    emulationPill.querySelector('span').textContent=connected?'NFC reader connected':emulating?'Emulation active':'Stopped';
+    $('#tagEmulationState').textContent=connected?'NFC reader is scanning the badge':emulating?'Waiting for an NFC reader':'Tag emulation stopped';
+    $('#tagEmulationType').textContent=state.emulatedRecordType||'—';
+    $('#tagScanCount').textContent=String(state.tagScans||0);
+    $('#tagEmulationPreview').textContent=state.emulatedPayload||'The badge starts with its Wi-Fi onboarding record. You can replace it with a Text or URL record here.';
+    $('#tagEmulationMessage').textContent=state.emulationMessage||'The badge will behave like a read-only NFC tag until you stop tag emulation.';
+
+    applyControls(state);
+    if(state.busy)startOperationPolling();else stopOperationPolling();
+  }
+
+  async function fetchWithTimeout(url,options={},timeout=2600){
+    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),timeout);
+    try{return await fetch(url,{...options,signal:controller.signal,cache:'no-store'})}finally{clearTimeout(timer)}
+  }
+
+  async function refreshState(){
+    if(previewMode||requestActive)return;
+    requestActive=true;
+    try{
+      const response=await fetchWithTimeout(`/api/nfc/state?_=${Date.now()}`);
+      if(!response.ok)throw new Error('Controller did not respond');
+      const state=await response.json();setConnection('connected');applyState(state);
+    }catch(error){
+      setConnection('disconnected');
+      applyState({readerReady:false,busy:false,status:'offline',message:'The webpage cannot reach the ESP32 NFC API.',tagEmulationEnabled:false,emulationReaderConnected:false,emulationMessage:'Controller unavailable.'});
+    }finally{requestActive=false}
+  }
+
+  async function startOperation(path,params={}){
+    if(previewMode){toast('Preview mode: no NFC operation was performed.');return}
+    requestActive=true;setTemporaryDisabled(true);
+    try{
+      const body=new URLSearchParams(params);
+      const response=await fetchWithTimeout(path,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body},4200);
+      const state=await response.json();setConnection('connected');applyState(state);
+      if(!response.ok)toast(state.message||'Operation was not accepted.');
+    }catch(error){setConnection('disconnected');toast('ESP32 connection lost.');}
+    finally{requestActive=false}
+  }
+
+  function startOperationPolling(){
+    if(operationPoll||previewMode)return;
+    operationPoll=setInterval(refreshState,500);
+  }
+  function stopOperationPolling(){if(operationPoll){clearInterval(operationPoll);operationPoll=0}}
+
+  function selectTab(tab){
+    activeTab=tab;
+    $$('.tab').forEach(button=>button.classList.toggle('active',button.dataset.tab===tab));
+    $('#urlPanel').classList.toggle('active',tab==='url');$('#textPanel').classList.toggle('active',tab==='text');
+    $('#writeButton').textContent=tab==='url'?'Write URL to tag':'Write text to tag';
+  }
+
+  function selectEmulationTab(tab){
+    activeEmulationTab=tab;
+    $$('.emulation-tab').forEach(button=>button.classList.toggle('active',button.dataset.emulationTab===tab));
+    $('#emulationUrlPanel').classList.toggle('active',tab==='url');
+    $('#emulationTextPanel').classList.toggle('active',tab==='text');
+    $('#emulationStartButton').textContent=tab==='url'?'Emulate URL tag':'Emulate Text tag';
+  }
+
+  function byteLength(value){return new TextEncoder().encode(value).length}
+  function updateCounts(){
+    $('#urlCount').textContent=`${byteLength($('#urlPayload').value)} / 700`;
+    $('#textCount').textContent=`${byteLength($('#textPayload').value)} / 700`;
+    $('#emulationUrlCount').textContent=`${byteLength($('#emulationUrlPayload').value)} / 220`;
+    $('#emulationTextCount').textContent=`${byteLength($('#emulationTextPayload').value)} / 220`;
+  }
+
+  $$('.tab').forEach(button=>button.addEventListener('click',()=>selectTab(button.dataset.tab)));
+  $$('.emulation-tab').forEach(button=>button.addEventListener('click',()=>selectEmulationTab(button.dataset.emulationTab)));
+  ['urlPayload','textPayload','emulationUrlPayload','emulationTextPayload'].forEach(id=>$('#'+id).addEventListener('input',updateCounts));
+
+  $('#scanButton').addEventListener('click',()=>startOperation('/api/nfc/read'));
+  $('#writeButton').addEventListener('click',()=>{
+    const payload=activeTab==='url'?$('#urlPayload').value.trim():$('#textPayload').value;
+    if(!payload){toast('Enter a payload before writing.');return}
+    startOperation('/api/nfc/write',{recordType:activeTab,payload});
+  });
+  $('#emulationStartButton').addEventListener('click',()=>{
+    const payload=activeEmulationTab==='url'?$('#emulationUrlPayload').value.trim():$('#emulationTextPayload').value;
+    if(!payload){toast('Enter a tag-emulation payload first.');return}
+    if(byteLength(payload)>220){toast('Tag-emulation payload must be 220 bytes or less.');return}
+    startOperation('/api/nfc/emulation/start',{recordType:activeEmulationTab,payload});
+  });
+  $('#emulationStopButton').addEventListener('click',()=>startOperation('/api/nfc/emulation/stop'));
+
+  window.addEventListener('focus',refreshState);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshState()});
+
+  updateCounts();
+  if(previewMode){setConnection('connected');applyState(sampleState)}
+  else{setConnection('checking');refreshState();setInterval(refreshState,3000)}
+})();
+</script>
+</body>
+</html>
