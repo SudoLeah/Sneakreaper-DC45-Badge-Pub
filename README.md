@@ -21,5 +21,5 @@ If you have any issues please open a GH issue or DM @Solaris on the [discord](ht
 
 # Badge CTF
 
-More inf to come soon, Once the defcon chaos has settled down i'll get to writing some hints and helpful tips for this, it's fully functional as-is so feel free to get cracking now :) But if you need a little extra help check back here in a day or two for some tips.
+More info to come soon, Once the defcon chaos has settled down i'll get to writing some hints and helpful tips for this, it's fully functional as-is so feel free to get cracking now :) But if you need a little extra help check back here in a day or two for some tips.
 
