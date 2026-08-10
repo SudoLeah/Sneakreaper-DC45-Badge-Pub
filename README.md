@@ -21,5 +21,28 @@ If you have any issues please open a GH issue or DM @Solaris on the [discord](ht
 
 # Badge CTF
 
-More info to come soon, Once the defcon chaos has settled down I'll get to writing some hints and helpful tips for this, it's fully functional as-is so feel free to get cracking now :) But if you need a little extra help check back here in a day or two for some tips.
+Below are some hints, these aren't step by step instructions (that's no fun) but they are designed to give you a little inspiration if you are really stuck on something. I'm splitting up the hints in to two parts since the CTF has two distinct sections you must solve before you reach the end. Still stuck? come ask me about it on the [discord](https://discord.gg/thesafehouse) @Solaris
 
+## Part 1: The Image
+<details>
+<summary>Hint</summary>
+You should look up steganography :) 
+</details>
+
+<details>
+<summary>Hint 2</summary>
+Security by obscurity may be a helpful term to think about, just because you see something that you might not understand yet doesn't mean it wont be important later.
+Take a hard look at the files within this repo.
+</details>
+
+## Part 2: Sleeper Activation
+<details>
+<summary>Hint</summary>
+Good job, you got further than most.
+Look deep in to the matrix and you might discover something.
+</details>
+
+<details>
+<summary>Hint 2</summary>
+Read up on number stations, they are really cool and still used today.
+</details>
